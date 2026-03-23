@@ -18,20 +18,26 @@ function App() {
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // Fetch clients on mount
+  // ✅ Fetch clients (only once)
   useEffect(() => {
     fetchClients();
   }, []);
 
-  // Fetch tasks and stats when selected client changes
+  // ✅ Fetch tasks + stats when filters/client change
   useEffect(() => {
     if (selectedClientId) {
       fetchTasks();
       fetchStats();
+    }
+  }, [selectedClientId, filters]);
+
+  // ✅ Fetch categories & statuses ONLY when client changes
+  useEffect(() => {
+    if (selectedClientId) {
       fetchCategories();
       fetchStatuses();
     }
-  }, [selectedClientId, filters]);
+  }, [selectedClientId]);
 
   const fetchClients = async () => {
     try {
@@ -39,6 +45,7 @@ function App() {
       const response = await fetch(`${API_BASE_URL}/clients`);
       const data = await response.json();
       setClients(data);
+
       if (data.length > 0 && !selectedClientId) {
         setSelectedClientId(data[0].id);
       }
@@ -53,7 +60,9 @@ function App() {
   const fetchTasks = async () => {
     try {
       const params = new URLSearchParams(filters);
-      const response = await fetch(`${API_BASE_URL}/clients/${selectedClientId}/tasks?${params}`);
+      const response = await fetch(
+        `${API_BASE_URL}/clients/${selectedClientId}/tasks?${params}`
+      );
       const data = await response.json();
       setTasks(data);
     } catch (err) {
@@ -64,7 +73,9 @@ function App() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/clients/${selectedClientId}/stats`);
+      const response = await fetch(
+        `${API_BASE_URL}/clients/${selectedClientId}/stats`
+      );
       const data = await response.json();
       setStats(data);
     } catch (err) {
@@ -133,6 +144,7 @@ function App() {
           </div>
         ) : (
           <div className="main-content">
+            {/* Sidebar */}
             <div className="sidebar">
               <ClientList
                 clients={clients}
@@ -141,6 +153,7 @@ function App() {
               />
             </div>
 
+            {/* Main Content */}
             <div className="content-area">
               {selectedClient ? (
                 <>
@@ -149,27 +162,39 @@ function App() {
                     {selectedClient.country} • {selectedClient.entity_type}
                   </p>
 
+                  {/* Stats */}
                   {stats && <Stats stats={stats} />}
 
+                  {/* Filters */}
                   <div className="filters-section">
+                    {/* ✅ Status Dropdown */}
                     <select
                       value={filters.status}
                       onChange={(e) => handleFilterChange('status', e.target.value)}
                     >
                       <option value="All">All Statuses</option>
-                      {statuses.map(status => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
+                      {statuses && statuses.length > 0 &&
+                        statuses.map(status => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))
+                      }
                     </select>
 
+                    {/* ✅ Category Dropdown */}
                     <select
                       value={filters.category}
                       onChange={(e) => handleFilterChange('category', e.target.value)}
                     >
                       <option value="All">All Categories</option>
-                      {categories.map(category => (
-                        <option key={category} value={category}>{category}</option>
-                      ))}
+                      {categories && categories.length > 0 &&
+                        categories.map(category => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))
+                      }
                     </select>
 
                     <button onClick={() => setShowAddModal(true)}>
@@ -177,12 +202,14 @@ function App() {
                     </button>
                   </div>
 
+                  {/* Task List */}
                   <TaskList
                     tasks={tasks}
                     onTaskUpdated={handleTaskUpdated}
                     onTaskDeleted={handleTaskDeleted}
                   />
 
+                  {/* Add Task Modal */}
                   {showAddModal && (
                     <div className="modal active">
                       <div className="modal-content">
@@ -208,7 +235,7 @@ function App() {
               ) : (
                 <div className="no-client-selected">
                   <h3>No client selected</h3>
-                  <p>Select a client from the sidebar to view tasks</p>
+                  <p>Select a client from the sidebar</p>
                 </div>
               )}
             </div>

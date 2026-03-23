@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api';
 
 function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
   const [editingTaskId, setEditingTaskId] = useState(null);
@@ -18,7 +18,7 @@ function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
   };
 
   const getPriorityColor = (priority) => {
-    return priority.toLowerCase();
+    return priority?.toLowerCase() || '';
   };
 
   const isOverdue = (task) => {
@@ -63,6 +63,7 @@ function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
   const handleEditStart = (task) => {
     setEditingTaskId(task.id);
     setEditData({
+      title: task.title,
       status: task.status,
       priority: task.priority,
       description: task.description
@@ -77,7 +78,7 @@ function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
     updateTask(taskId, { status: newStatus });
   };
 
-  if (tasks.length === 0) {
+  if (!tasks || tasks.length === 0) {
     return (
       <div className="empty-state">
         <h3>No tasks found</h3>
@@ -94,13 +95,12 @@ function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
           className={`task-card ${isOverdue(task) ? 'overdue' : ''} ${task.status === 'Completed' ? 'completed' : ''}`}
         >
           {editingTaskId === task.id ? (
-            // Edit mode
             <div>
               <div className="form-group">
                 <label>Title</label>
                 <input
                   type="text"
-                  value={editData.title || task.title}
+                  value={editData.title}
                   onChange={(e) => setEditData({ ...editData, title: e.target.value })}
                 />
               </div>
@@ -147,7 +147,6 @@ function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
               </div>
             </div>
           ) : (
-            // View mode
             <>
               <div className="task-header">
                 <div className="task-title">{task.title}</div>
@@ -171,26 +170,23 @@ function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
 
               <div className="task-meta">
                 <div className="task-date">
-                  📅 Due: {new Date(task.due_date).toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
+                  📅 Due: {new Date(task.due_date).toLocaleDateString()}
                 </div>
+
                 <div className="task-actions">
                   <select
                     value={task.status}
                     onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                    style={{ padding: '6px 8px', fontSize: '0.9em' }}
                   >
                     <option value="Pending">Pending</option>
                     <option value="In Progress">In Progress</option>
                     <option value="Completed">Completed</option>
                   </select>
+
                   <button className="btn-secondary" onClick={() => handleEditStart(task)}>
                     Edit
                   </button>
+
                   <button className="btn-danger" onClick={() => deleteTask(task.id)}>
                     Delete
                   </button>
