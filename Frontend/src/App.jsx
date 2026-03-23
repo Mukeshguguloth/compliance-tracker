@@ -4,7 +4,7 @@ import TaskList from './components/TaskList';
 import AddTaskForm from './components/AddTaskForm';
 import Stats from './components/Stats';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE || 'https://compliance-tracker-no9p.onrender.com/api';
+const API_BASE_URL = '/api';
 
 function App() {
   const [clients, setClients] = useState([]);
