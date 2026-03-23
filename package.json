@@ -1,0 +1,23 @@
+{
+  "name": "compliance-tracker",
+  "version": "1.0.0",
+  "description": "Mini Compliance Tracker - Track compliance tasks for clients",
+  "private": true,
+  "scripts": {
+    "install-all": "npm install && cd Backend && npm install && cd ../Frontend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd Backend && npm run dev",
+    "dev:frontend": "cd Frontend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd Frontend && npm run build",
+    "build:backend": "echo 'Backend does not need building'",
+    "start": "cd Backend && npm start",
+    "test": "echo 'No tests specified yet'"
+  },
+  "keywords": ["compliance", "tasks", "tracker", "clients"],
+  "author": "Compliance Tracker Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}
