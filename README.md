@@ -31,16 +31,21 @@ A simple web application to track compliance tasks for different clients. Built 
 ```
 Mini_Compliance_Tracker/
 ├── Backend/
-│   ├── server.js          # Express application & API endpoints
-│   ├── db.js              # Database initialization & helpers
-│   ├── seed.js            # Database seeding with sample data
+│   ├── server.js              # Express app + APIs + serves frontend
+│   ├── db.js                  # SQLite DB setup
+│   ├── seed.js                # Seed data
 │   ├── package.json
+│   ├── package-lock.json
 │   ├── .env
-│   └── compliance.db      # SQLite database (auto-created)
+│   ├── compliance.db          # SQLite DB 
+│   └── dist/                  # ✅ REQUIRED (frontend build)
+│       ├── index.html
+│       └── assets/
+│
 ├── Frontend/
 │   ├── src/
-│   │   ├── main.jsx       # React entry point
-│   │   ├── App.jsx        # Main App component
+│   │   ├── main.jsx
+│   │   ├── App.jsx
 │   │   └── components/
 │   │       ├── ClientList.jsx
 │   │       ├── TaskList.jsx
@@ -49,9 +54,11 @@ Mini_Compliance_Tracker/
 │   ├── index.html
 │   ├── vite.config.js
 │   ├── package.json
+│   ├── package-lock.json
 │   ├── .env
-│   └── dist/              # Built files (after npm run build)
-└── .gitignore
+│   └── dist/                  # (optional here, but not required for deploy)
+│
+├── .gitignore
 ```
 
 ## Setup Instructions
