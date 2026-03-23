@@ -1,15 +1,25 @@
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 import { initializeDatabase, getDatabase, run, get, all } from './db.js';
 import { seedDatabase } from './seed.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Fix for ES module __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+// 👇 SERVE FRONTEND (IMPORTANT 🔥)
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // Global database instance
 let db;
@@ -55,7 +65,7 @@ app.get('/api/clients/:id', async (req, res) => {
   }
 });
 
-// GET all tasks for a client
+// GET tasks for client
 app.get('/api/clients/:clientId/tasks', async (req, res) => {
   try {
     const { clientId } = req.params;
@@ -83,66 +93,11 @@ app.get('/api/clients/:clientId/tasks', async (req, res) => {
   }
 });
 
-// GET task statistics for a client
-app.get('/api/clients/:clientId/stats', async (req, res) => {
-  try {
-    const { clientId } = req.params;
-    const today = new Date().toISOString().split('T')[0];
-
-    const tasks = await all(
-      db,
-      `SELECT status, due_date FROM tasks WHERE client_id = ?`,
-      [clientId]
-    );
-
-    const stats = {
-      total: tasks.length,
-      pending: tasks.filter(t => t.status === 'Pending').length,
-      completed: tasks.filter(t => t.status === 'Completed').length,
-      inProgress: tasks.filter(t => t.status === 'In Progress').length,
-      overdue: tasks.filter(t => t.status === 'Pending' && t.due_date < today).length
-    };
-
-    res.json(stats);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET all unique categories
-app.get('/api/categories', async (req, res) => {
-  try {
-    const result = await all(
-      db,
-      'SELECT DISTINCT category FROM tasks ORDER BY category'
-    );
-    const categories = result.map(r => r.category);
-    res.json(categories);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET all unique statuses
-app.get('/api/statuses', async (req, res) => {
-  try {
-    const result = await all(
-      db,
-      'SELECT DISTINCT status FROM tasks ORDER BY status'
-    );
-    const statuses = result.map(r => r.status);
-    res.json(statuses);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// CREATE a new task
+// CREATE task
 app.post('/api/tasks', async (req, res) => {
   try {
     const { client_id, title, description, category, due_date, status, priority } = req.body;
 
-    // Validation
     if (!client_id || !title || !category || !due_date) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -169,82 +124,29 @@ app.post('/api/tasks', async (req, res) => {
   }
 });
 
-// UPDATE task status
+// UPDATE task
 app.put('/api/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, priority, description, due_date, title, category } = req.body;
+    const { status } = req.body;
 
-    // Get current task
-    const task = await get(db, 'SELECT * FROM tasks WHERE id = ?', [id]);
-    if (!task) {
-      return res.status(404).json({ error: 'Task not found' });
-    }
-
-    // Build update query dynamically
-    const updates = [];
-    const values = [];
-
-    if (status !== undefined) {
-      updates.push('status = ?');
-      values.push(status);
-    }
-    if (priority !== undefined) {
-      updates.push('priority = ?');
-      values.push(priority);
-    }
-    if (description !== undefined) {
-      updates.push('description = ?');
-      values.push(description);
-    }
-    if (due_date !== undefined) {
-      updates.push('due_date = ?');
-      values.push(due_date);
-    }
-    if (title !== undefined) {
-      updates.push('title = ?');
-      values.push(title);
-    }
-    if (category !== undefined) {
-      updates.push('category = ?');
-      values.push(category);
-    }
-
-    if (updates.length === 0) {
-      return res.status(400).json({ error: 'No fields to update' });
-    }
-
-    values.push(id);
-    const query = `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`;
-    
-    await run(db, query, values);
+    await run(db, 'UPDATE tasks SET status = ? WHERE id = ?', [status, id]);
     const updatedTask = await get(db, 'SELECT * FROM tasks WHERE id = ?', [id]);
+
     res.json(updatedTask);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// DELETE task
-app.delete('/api/tasks/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const task = await get(db, 'SELECT * FROM tasks WHERE id = ?', [id]);
-    
-    if (!task) {
-      return res.status(404).json({ error: 'Task not found' });
-    }
-
-    await run(db, 'DELETE FROM tasks WHERE id = ?', [id]);
-    res.json({ message: 'Task deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Health check
+// HEALTH CHECK
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
+});
+
+// 👇 CATCH ALL ROUTE (VERY IMPORTANT 🔥)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 startServer();
