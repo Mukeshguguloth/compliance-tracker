@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import { initializeDatabase, getDatabase, run, get, all } from './db.js';
@@ -19,7 +20,11 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // 👇 SERVE FRONTEND (IMPORTANT 🔥)
-app.use(express.static(path.join(__dirname, 'dist')));
+const frontendDistPath = path.join(__dirname, '..', 'Frontend', 'dist');
+const backendDistPath = path.join(__dirname, 'dist');
+const distPath = fs.existsSync(frontendDistPath) ? frontendDistPath : backendDistPath;
+console.log('Serving static files from:', distPath);
+app.use(express.static(distPath));
 
 // Global database instance
 let db;
@@ -258,7 +263,7 @@ app.get('/api/health', (req, res) => {
 
 // 👇 CATCH ALL ROUTE (VERY IMPORTANT 🔥)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 startServer();
