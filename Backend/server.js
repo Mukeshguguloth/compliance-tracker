@@ -128,12 +128,124 @@ app.post('/api/tasks', async (req, res) => {
 app.put('/api/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, priority, description, due_date, title, category } = req.body;
 
-    await run(db, 'UPDATE tasks SET status = ? WHERE id = ?', [status, id]);
+    // Get current task
+    const task = await get(db, 'SELECT * FROM tasks WHERE id = ?', [id]);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Build dynamic update query
+    const updates = [];
+    const values = [];
+
+    if (status !== undefined) {
+      updates.push('status = ?');
+      values.push(status);
+    }
+    if (priority !== undefined) {
+      updates.push('priority = ?');
+      values.push(priority);
+    }
+    if (description !== undefined) {
+      updates.push('description = ?');
+      values.push(description);
+    }
+    if (due_date !== undefined) {
+      updates.push('due_date = ?');
+      values.push(due_date);
+    }
+    if (title !== undefined) {
+      updates.push('title = ?');
+      values.push(title);
+    }
+    if (category !== undefined) {
+      updates.push('category = ?');
+      values.push(category);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(id);
+    const query = `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`;
+    
+    await run(db, query, values);
     const updatedTask = await get(db, 'SELECT * FROM tasks WHERE id = ?', [id]);
-
     res.json(updatedTask);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET task statistics for a client
+app.get('/api/clients/:clientId/stats', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const today = new Date().toISOString().split('T')[0];
+
+    const tasks = await all(
+      db,
+      `SELECT status, due_date FROM tasks WHERE client_id = ?`,
+      [clientId]
+    );
+
+    const stats = {
+      total: tasks.length,
+      pending: tasks.filter(t => t.status === 'Pending').length,
+      completed: tasks.filter(t => t.status === 'Completed').length,
+      inProgress: tasks.filter(t => t.status === 'In Progress').length,
+      overdue: tasks.filter(t => t.status === 'Pending' && t.due_date < today).length
+    };
+
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET all unique categories
+app.get('/api/categories', async (req, res) => {
+  try {
+    const result = await all(
+      db,
+      'SELECT DISTINCT category FROM tasks ORDER BY category'
+    );
+    const categories = result.map(r => r.category);
+    res.json(categories);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET all unique statuses
+app.get('/api/statuses', async (req, res) => {
+  try {
+    const result = await all(
+      db,
+      'SELECT DISTINCT status FROM tasks ORDER BY status'
+    );
+    const statuses = result.map(r => r.status);
+    res.json(statuses);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE task
+app.delete('/api/tasks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const task = await get(db, 'SELECT * FROM tasks WHERE id = ?', [id]);
+    
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    await run(db, 'DELETE FROM tasks WHERE id = ?', [id]);
+    res.json({ message: 'Task deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
